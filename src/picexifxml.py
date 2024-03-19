@@ -26,6 +26,7 @@ gen_kwargs = {
     "early_stopping": early_stopping
 }
 
+
 def predict_step(image_path):
     image = Image.open(image_path).convert("RGB")
     pixel_values = feature_extractor(images=[image], return_tensors="pt").pixel_values
@@ -34,7 +35,8 @@ def predict_step(image_path):
     preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
     return preds[0].strip()
 
-def generate_xml_for_image(image_path, image_id):
+
+def generate_xml_for_image(image_path, image_id, xml_directory):
     exif_data = {}
     try:
         with Image.open(image_path) as image:
@@ -49,13 +51,13 @@ def generate_xml_for_image(image_path, image_id):
     xml_str = ET.tostring(photo_elem, encoding="utf-8")
     pretty_xml_as_string = minidom.parseString(xml_str).toprettyxml(indent="   ")
 
-    xml_directory = 'generated_xml'
     os.makedirs(xml_directory, exist_ok=True)
     xml_path = os.path.join(xml_directory, os.path.basename(image_path) + '.xml')
     with open(xml_path, "w", encoding="utf-8") as f:
         f.write(pretty_xml_as_string)
 
-def process_directory(directory_path):
+
+def process_directory(directory_path, xml_directory):
     files = [f for f in os.listdir(directory_path) if f.lower().endswith(".jpg")]
     total_files = len(files)
 
@@ -63,19 +65,20 @@ def process_directory(directory_path):
     progressBar(total_files, iteration=0, prefix='Progress:', suffix='Complete', length=65)
 
     for i, filename in enumerate(files):
-        generate_xml_for_image(os.path.join(directory_path, filename), i+1)
-        progressBar(total_files, iteration=i+1, prefix='Progress:', suffix='Complete', length=65)
-        # progress = (i + 1) / total_files * 100
-        # print(f"[{progress:.0f}%]{'=' * (int(progress) // 10)}{'.' * (10 - int(progress) // 10)}[100%]\n", end='')
+        generate_xml_for_image(os.path.join(directory_path, filename), i + 1, xml_directory)
+        progressBar(total_files, iteration=i + 1, prefix='Progress:', suffix='Complete', length=65)
 
-    print()  # Ensure the next print is on a new line
+    print()
 
-def progressBar(total, iteration, prefix = '', suffix = '', decimals = 1, length = 100, fill = '▓', printEnd = "\n"):
+
+def progressBar(total, iteration, prefix='', suffix='', decimals=1, length=100, fill='▓', printEnd="\n"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '░' * (length - filledLength)
     print(f'{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
 
+
 if __name__ == "__main__":
     images_directory = 'images'
-    process_directory(images_directory)
+    xml_directory = 'generated_xml'
+    process_directory(images_directory, xml_directory)
